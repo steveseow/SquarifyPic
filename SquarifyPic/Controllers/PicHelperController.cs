@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -13,12 +14,12 @@ namespace SquarifyPic.Controllers
     {
         [Route("Squarify")]
         [HttpPost]
-        public string Squarify(string imageUri)
+        public byte[] Squarify(string imageUri)
         {
             return ProcessSquarify(imageUri);
         }
 
-        private string ProcessSquarify(string imageUri)
+        private byte[] ProcessSquarify(string imageUri)
         {
             var request = WebRequest.Create(imageUri);
             try
@@ -32,12 +33,19 @@ namespace SquarifyPic.Controllers
                     int s = Math.Min(h, w);
                     s = Math.Min(s, 100); //100 px or smaller
                     Image imageSquared = ResizeImage(image, new Size(s, s));
+
+                    using (var streamNew = new MemoryStream())
+                    {
+                        imageSquared.Save(streamNew, image.RawFormat);
+                        return streamNew.ToArray();
+                    }
                 }
             }
             catch (Exception)
             {
-
             }
+
+            return null;
         }
 
 
@@ -77,10 +85,23 @@ namespace SquarifyPic.Controllers
             }
 
             return bitmap;
+        }
 
+        public static byte[] ReadFully(Stream input)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
+            }
         }
 
 
-    }
+}
 }
 
